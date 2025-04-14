@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import authRoutes from '@modules/auth/auth.route' //importing '/register', '/login' routes
 
 const app = express()
 
@@ -17,4 +18,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Backend running!' });
 })
 
+app.use('/api/auth', authRoutes) //mounts routes to 'POST api/auth/register | login', frontend can call those routes now
+
 export default app
+
