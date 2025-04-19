@@ -14,18 +14,33 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
+  id        String    @id @default(uuid()) 
   name      String
   email     String    @unique
-  password  String   
+  password  String
   role      Role      @default(BUYER)
   isBanned  Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  products  Product[] @relation("sellerProducts") //one-to-many, one seller can have many products 
 }
 
 enum Role {
   ADMIN
   BUYER
   SELLER
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  category    String
+  images      String[] //Cloudinary image url
+  video       String?  //Optional Cloudinary video URL
+  sellerId    String   //stores id of the user who is selling a particular product, foreign key 
+  seller      User     @relation("sellerProducts", fields: [sellerId], references: [id]) //can acess all the data of the user, one-to-one relation
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -3,6 +3,8 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import authRoutes from '@modules/auth/auth.route' //importing '/register', '/login' routes
 import roleRoutes from '@modules/protected/role-protected.route'
+import userRoutes from '@modules/user/user.route'
+import productRoutes from '@modules/product/product.route'
 
 const app = express()
 
@@ -23,6 +25,9 @@ app.use('/api/auth', authRoutes) //mounts routes to 'POST api/auth/register | lo
 
 app.use('/api/test', roleRoutes)
 
+app.use('/api/user', userRoutes)
+
+app.use('/api/products', productRoutes)
 
 export default app
 

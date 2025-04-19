@@ -35,7 +35,8 @@ export const loginUser = async (email: string, password: string) => {
     const user = await prisma.user.findUnique({where: { email: email }}) //if found,craeates user object (user.id, user.email., user.isBanned and the rest of data in the corresponding row of user entry in the DB User table, user = null otherwise)
 
 
-    if (!user || user.isBanned) throw new Error('User not found or Banned')
+    if (!user || user.isBanned) 
+        throw new Error(!user ? 'User not found' : 'Your account has been banned. Please contact support')  //'!user ?' is a ternary operator. ie, 'conditon ? valureIfTrue : valueIfFalse'
 
     const isMatch = await bcrypt.compare(password, user.password)
 
