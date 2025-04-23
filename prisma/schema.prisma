@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,15 +8,103 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid()) 
-  name      String
-  email     String    @unique
-  password  String
-  role      Role      @default(BUYER)
-  isBanned  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[] @relation("sellerProducts") //one-to-many, one seller can have many products 
+
+  id           String       @id @default(uuid())
+
+  name         String
+
+  email        String       @unique
+
+  password     String
+
+  role         Role         @default(BUYER)
+
+  isBanned     Boolean      @default(false)
+
+  createdAt    DateTime     @default(now())
+
+  updatedAt    DateTime     @updatedAt
+
+  products     Product[]    @relation("sellerProducts") // one-to-many relation 
+
+  orders       Order[]      @relation("buyerOrders")
+
+} 
+
+model Product {
+
+  id             String        @id @default(uuid())
+ 
+  title          String
+
+  description    String
+
+  price          Float
+
+  category       String
+
+  images         String[]
+
+  imageIds       String[]      //image public ids 
+
+  video          String?       //optional field, can be null or undefined 
+
+  videoId        String?       //video public id
+
+  sellerId       String
+
+  createdAt      DateTime      @default(now())
+  
+  updatedAt      DateTime      @updatedAt
+
+  seller         User          @relation("sellerProducts", fields: [sellerId], references: [id]) //many to one relation
+
+  orderItems     OrderItem[]   @relation("orderedProduct")  // one-to-many relation where one product can be in multiple order items
+
+}
+
+//order: one per checkout
+
+model Order {
+
+  id               String          @id @default(uuid())
+
+  buyerId          String
+
+  buyer            User            @relation("buyerOrders", fields: [buyerId], references: [id])
+
+  status           OrderStatus     @default(PENDING)
+
+  paymentMethod    PaymentMethod
+
+  shippingInfo     String
+
+  createrAt        DateTime        @default(now())
+
+  updatedAt        DateTime        @updatedAt
+
+  items            OrderItem[]     @relation("orderItems") //one-to-many relation 
+
+}
+
+
+//orderItem: each item in the cart (many per order)
+
+model OrderItem {
+
+  id            String       @id @default(uuid())
+
+  orderId       String
+
+  productId     String
+
+  quantity      Int 
+
+  price         Float
+
+  order         Order        @relation("orderItems", fields: [orderId], references: [id])
+
+  product       Product      @relation("orderedProduct", fields: [productId], references: [id])
 }
 
 enum Role {
@@ -31,16 +113,16 @@ enum Role {
   SELLER
 }
 
-model Product {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  price       Float
-  category    String
-  images      String[] //Cloudinary image url
-  video       String?  //Optional Cloudinary video URL
-  sellerId    String   //stores id of the user who is selling a particular product, foreign key 
-  seller      User     @relation("sellerProducts", fields: [sellerId], references: [id]) //can acess all the data of the user, one-to-one relation
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  OUT_FOR_DELIVERY
+  COMPLETED 
+  CANCELLED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  BKASH
 }

@@ -1,5 +1,10 @@
 import jwt from 'jsonwebtoken'
-import { User } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+
+type User = {
+    id: string,
+    role: string
+}
 
 const accessSecret = process.env.JWT_SECRET!
 const refreshSecret = process.env.JWT_REFRESH_SECRET!
