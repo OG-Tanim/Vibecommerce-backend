@@ -15,7 +15,7 @@ router.get('/me', authenticate, getMyProfile)
 router.patch('/update', authenticate, updateMyProfile)
 
 //Admin only
-router.get('/all', authenticate, requireRole('ADMIN'), getAllUsers)
+router.get('/users', authenticate, requireRole('ADMIN'), getAllUsers)
 router.patch('/ban/:id', authenticate, requireRole('ADMIN'), toggleUserBan)
 
 export default router

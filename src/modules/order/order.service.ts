@@ -1,4 +1,6 @@
 import prisma from '@config/db'
+import { OrderStatus } from '@prisma/client';
+import { allowedTransitions } from '@utils/orderStatusTransitions'
 
 interface OrderItemInput {
     productId: string,
@@ -9,18 +11,23 @@ interface OrderItemInput {
 interface OrderInput {
     items: OrderItemInput[];
     shippingInfo: string;
-    paymentMethod: 'CASH_ON_DELIVERY' | 'BKASH'
+    paymentMethod: 'CASH_ON_DELIVERY' | 'BKASH',
 }
 
 export const createOrder = async (buyerId: string, data: OrderInput) => {
 
-    if (!data.items.length) throw new Error('No items in order')
+    if (!data.items.length) throw new Error('No items in order');
+
+    const totalAmount = data.items.reduce((sum, item) => {
+        return sum + item.price * item.quantity
+    }, 0)                                                                     //data.items.reduce() iterates over the items in in each order and calculates the total 
     
     return await prisma.order.create({
         data: {
             buyerId,
             shippingInfo : data.shippingInfo,
             paymentMethod : data.paymentMethod,
+            totalAmount,
             items: {
                 create: data.items.map(item => ({ 
                   productId: item.productId,
@@ -104,6 +111,13 @@ export const updateStatus = async (
     const isSellerProduct = order.items.some(item => item.product.sellerId == sellerId)
 
     if (!isSellerProduct) throw new Error('Not Authorized to update this order')
+
+    const currentStatus = order.status
+    const validatedNextStatuses = allowedTransitions[currentStatus]
+
+    if (!validatedNextStatuses?.includes(status)) {
+        throw new Error(`Cannot change status form ${currentStatus} to ${status}`)
+    }
 
     return await prisma.order.update({
         where: { id: orderId },

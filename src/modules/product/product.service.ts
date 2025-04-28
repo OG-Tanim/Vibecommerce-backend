@@ -1,4 +1,5 @@
 import prisma from '@config/db'
+import { Prisma } from '@prisma/client';
 import { deleteCloudinaryAssets } from '@utils/cloudinary-delete';
 
 export const ProductService = {
@@ -12,7 +13,9 @@ export const ProductService = {
             images: string[];
             imageIds: string[];
             video?:string;
-            videoId?: string
+            videoId?: string;
+            discountPrice?: number;
+            discountValidTill?: Date
         }
     ) => {
         return await prisma.product.create({
@@ -44,6 +47,68 @@ export const ProductService = {
         }
       })
     },
+
+    searchProducts: async ({
+        name,
+        category,
+        minPrice,
+        maxPrice,
+      }: {
+        name?: string;
+        category?: string;
+        minPrice?: number;
+        maxPrice?: number;
+      }) => {
+        const now = new Date();
+      
+        // Fallback values for price filters
+        const min = minPrice ?? 0;
+        const max = maxPrice ?? 9999999;
+      
+        const where: any = {
+          ...(name && {
+            title: {
+              contains: name,
+              mode: "insensitive",
+            },
+          }),
+          ...(category && {
+            category: {
+              equals: category,
+              mode: "insensitive",
+            },
+          }),
+        };
+      
+        if (minPrice !== undefined || maxPrice !== undefined) {
+          where.OR = [
+            {
+              AND: [
+                { discountValidTill: { gt: now } },
+                { discountPrice: { gte: min, lte: max } },
+              ],
+            },
+            {
+              AND: [
+                {
+                  OR: [
+                    { discountValidTill: null },
+                    { discountValidTill: { lte: now } },
+                  ],
+                },
+                { price: { gte: min, lte: max } },
+              ],
+            },
+          ];
+        }
+      
+        return await prisma.product.findMany({
+          where,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      },      
 
     update: async (id: string, userId: string, data: any) => {
         const product = await prisma.product.findUnique({

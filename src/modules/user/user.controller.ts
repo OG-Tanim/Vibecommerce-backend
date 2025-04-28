@@ -18,6 +18,6 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 }
 
 export const toggleUserBan = async (req: Request, res: Response) => {
-    const updated = await userService.toggleBan(req.params.id) //'/:id' in the url of the request is passed
-    res.json(updated)
+    const updatedUserStaus = await userService.toggleBan(req.params.id) //'/:id' in the url of the request is passed
+    res.json(updatedUserStaus)
 }

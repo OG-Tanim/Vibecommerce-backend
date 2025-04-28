@@ -29,6 +29,9 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
         
         req.user = decoded //ts does not know req.user. so defined in AuthenticatedRequest here decoded and req.user have custom interface to accomodate user id and role
 
+        if (decoded.isBanned) {
+            res.status(403).json({ message: 'Account suspended'})
+        }
         next() //passes the control to next middleware or router in the express pipeline
 
     } catch (err) {

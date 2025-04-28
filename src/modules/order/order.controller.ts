@@ -71,6 +71,7 @@ export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response
         const orderId = req.params.id
         const { status } = req.body 
 
+
         // Note: The parameter order needs to match the function definition
         const order = await updateStatus(orderId, sellerId, status)
         res.status(200).json({ message: 'Status Updated', order})

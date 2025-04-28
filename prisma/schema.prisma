@@ -29,37 +29,45 @@ model User {
 
   orders       Order[]      @relation("buyerOrders")
 
+  reviews      Review[]
+
 } 
 
 model Product {
 
-  id             String        @id @default(uuid())
+  id                 String        @id @default(uuid())
  
-  title          String
+  title              String
 
-  description    String
+  description        String
 
-  price          Float
+  price              Float
 
-  category       String
+  discountedPrice    Float?
 
-  images         String[]
+  discountValidTill  DateTime?
 
-  imageIds       String[]      //image public ids 
+  category           String
 
-  video          String?       //optional field, can be null or undefined 
+  images             String[]
 
-  videoId        String?       //video public id
+  imageIds           String[]      //image public ids 
 
-  sellerId       String
+  video              String?       //optional field, can be null or undefined 
 
-  createdAt      DateTime      @default(now())
+  videoId            String?       //video public id
+
+  sellerId           String
+
+  createdAt          DateTime      @default(now())
   
-  updatedAt      DateTime      @updatedAt
+  updatedAt          DateTime      @updatedAt
 
-  seller         User          @relation("sellerProducts", fields: [sellerId], references: [id]) //many to one relation
+  seller             User          @relation("sellerProducts", fields: [sellerId], references: [id]) //many to one relation
 
-  orderItems     OrderItem[]   @relation("orderedProduct")  // one-to-many relation where one product can be in multiple order items
+  orderItems         OrderItem[]   @relation("orderedProduct")  // one-to-many relation where one product can be in multiple order items
+
+  reviews            Review[]
 
 }
 
@@ -85,6 +93,8 @@ model Order {
 
   items            OrderItem[]     @relation("orderItems") //one-to-many relation 
 
+  totalAmount      Float
+
 }
 
 
@@ -105,6 +115,27 @@ model OrderItem {
   order         Order        @relation("orderItems", fields: [orderId], references: [id])
 
   product       Product      @relation("orderedProduct", fields: [productId], references: [id])
+}
+
+
+model Review {
+
+  id           String      @id @default(uuid())
+
+  rating       Int
+
+  comment      String
+
+  productId    String
+
+  buyerId      String
+  
+  createdAt    DateTime    @default(now())
+
+  product      Product     @relation(fields: [productId], references: [id])
+
+  buyer        User        @relation(fields: [buyerId], references: [id])
+
 }
 
 enum Role {

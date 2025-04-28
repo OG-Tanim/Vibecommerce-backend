@@ -6,6 +6,7 @@ import roleRoutes from '@modules/protected/role-protected.route'
 import userRoutes from '@modules/user/user.route'
 import productRoutes from '@modules/product/product.route'
 import orderRoutes from '@modules/product/product.route'
+import reviewRoutes from '@modules/review/review.route'
 
 const app = express()
 
@@ -31,6 +32,8 @@ app.use('/api/user', userRoutes)
 app.use('/api/products', productRoutes)
 
 app.use('/api/orders', orderRoutes)
+
+app.use('/api/reviews')
 
 export default app
 
