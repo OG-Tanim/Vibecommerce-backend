@@ -1,5 +1,6 @@
 import prisma from '@config/db'
 import bcrypt from 'bcryptjs'
+import { getAdminDashboard } from './user.controller'
 
 export const userService = {
     
@@ -64,3 +65,22 @@ export const adminService = {
         }
     }
 }                     //adminService is a separate service for admin related operations. It is not used in the user module but can be used in the admin module if needed. 
+
+export const SellerService = {
+    getDashboardStats: async (sellerId: string) => {
+            const [productCount, orderCount, totalRevenue] = await Promise.all([
+                prisma.product.count({ where: { sellerId }}),
+                prisma.order.count({ where: { items: { some: { product: { sellerId }}}}}),
+                prisma.order.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { items: { some: { product: { sellerId }}} },   //values being assigned to functions params in the same order as the input array
+                })
+            ]);
+    
+            return {
+                productCount,
+                orderCount,
+                totalRevenue: totalRevenue._sum.totalAmount || 0           //if totalRevenue is null, return 0
+        }
+    }
+}

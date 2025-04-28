@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { AuthenticatedRequest } from '@middleware/auth'
-import { userService, adminService } from './user.service'
+import { userService, adminService, SellerService } from './user.service'
 
 export const getMyProfile = async (req: AuthenticatedRequest, res: Response) => {
     const user = await userService.getProfile(req.user!.id)
@@ -22,7 +22,13 @@ export const toggleUserBan = async (req: Request, res: Response) => {
     res.json(updatedUserStaus)
 }
 
-export const getDashboard = async (_req: Request, res: Response) => {
+export const getAdminDashboard = async (_req: Request, res: Response) => {
     const stats = await adminService.getDashboard()
+    res.json(stats)
+}
+
+export const getSellerDashboard = async (req: AuthenticatedRequest, res: Response) => {
+    const sellerId = req.user!.id
+    const stats = await SellerService.getDashboardStats(sellerId)
     res.json(stats)
 }

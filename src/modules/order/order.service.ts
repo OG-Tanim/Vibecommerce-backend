@@ -1,6 +1,7 @@
-import prisma from '@config/db'
-import { OrderStatus } from '@prisma/client';
-import { allowedTransitions } from '@utils/orderStatusTransitions'
+import prisma from '@config/db';
+import { OrderStatus, Prisma } from '@prisma/client'; // Merged Prisma import
+import { allowedTransitions } from '@utils/orderStatusTransitions';
+import { MailService } from '@utils/mail.service'; // Keep MailService import
 
 interface OrderItemInput {
     productId: string,
@@ -20,27 +21,78 @@ export const createOrder = async (buyerId: string, data: OrderInput) => {
 
     const totalAmount = data.items.reduce((sum, item) => {
         return sum + item.price * item.quantity
-    }, 0)                                                                     //data.items.reduce() iterates over the items in in each order and calculates the total 
-    
-    return await prisma.order.create({
+    }, 0);
+
+    // Create the order and include necessary details for email sending
+    const createdOrder = await prisma.order.create({
         data: {
             buyerId,
             shippingInfo : data.shippingInfo,
             paymentMethod : data.paymentMethod,
             totalAmount,
             items: {
-                create: data.items.map(item => ({ 
+                create: data.items.map(item => ({
                   productId: item.productId,
                   quantity: item.quantity,
                   price: item.price,
-                }) // nested create here creates Order Item table from order table wheren items: OrderItems[]
-              ),
-            }, 
-        }, 
+                })),
+            },
+        },
+        include: { // Include details needed for email notifications
+            items: {
+                include: {
+                    product: {
+                        include: {
+                            seller: true // Include seller details
+                        }
+                    }
+                }
+            },
+            buyer: true // Include buyer details if needed later
+        }
+    });
 
-        include: { items: true}, // includes the OrderItem data too when fetching Order data 
-    })
-} 
+    // --- Send email notifications after order creation ---
+    try {
+        const sellersToNotify: { [sellerId: string]: { email: string; name: string; products: string[] } } = {};
+
+        // Group items by seller
+        createdOrder.items.forEach(item => {
+            // Ensure product and seller exist before accessing properties
+            if (item.product && item.product.seller && item.product.seller.email) {
+                const seller = item.product.seller;
+                if (!sellersToNotify[seller.id]) {
+                    sellersToNotify[seller.id] = { email: seller.email, name: seller.name || 'Seller', products: [] }; // Provide default name if null
+                }
+                sellersToNotify[seller.id].products.push(item.product.title || 'Unknown Product'); // Provide default title if null
+            }
+        });
+
+        // Send one email per seller
+        for (const sellerId in sellersToNotify) {
+            const sellerInfo = sellersToNotify[sellerId];
+            const productList = sellerInfo.products.join(', ');
+            console.log(`Attempting to send email to seller: ${sellerInfo.email} for Order ID: ${createdOrder.id}`); // Added logging
+            await MailService.sendMail({
+                to: sellerInfo.email,
+                subject: `New Order Received! (Order ID: ${createdOrder.id})`,
+                html: `
+                    <p>Hi ${sellerInfo.name},</p>
+                    <p>You have received a new order containing the following product(s): <b>${productList}</b>.</p>
+                    <p>Order ID: ${createdOrder.id}</p>
+                    <p>Please check your seller dashboard for more details.</p>
+                `,
+            });
+            console.log(`Email sent successfully to: ${sellerInfo.email} for Order ID: ${createdOrder.id}`); // Added logging
+        }
+    } catch (emailError) {
+        console.error(`Failed to send order notification email for Order ID ${createdOrder.id}:`, emailError);
+        // Do not throw error here, allow order creation to succeed even if email fails
+    }
+    // -----------------------------------------------------
+
+    return createdOrder; // Return the created order object
+};
 
 export const getOrder = async (params: {
     buyerId?: string, 
@@ -124,4 +176,3 @@ export const updateStatus = async (
         data : { status }
     })
 }
-
