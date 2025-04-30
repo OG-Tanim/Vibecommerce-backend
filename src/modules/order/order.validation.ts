@@ -10,3 +10,15 @@ export const OrderSchema = z.object({
     })) 
 })
 
+const statuses = z.enum([
+    'PENDING',
+    'PROCESSING',
+    'OUT_FOR_DELIVERY',
+    'COMPLETED',
+    'CANCELLED',
+    'REJECTED',
+])
+
+export const UpdateStatusSchema = z.object({
+    status: statuses,
+})

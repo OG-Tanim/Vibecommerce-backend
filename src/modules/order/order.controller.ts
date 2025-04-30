@@ -4,75 +4,72 @@ import {
     getOrder,
     updateStatus 
     } from './order.service' 
-import { Request, Response } from 'express'
-import { OrderSchema } from "./order.validation"
+import { Request, Response, NextFunction } from 'express'
+import { OrderSchema, UpdateStatusSchema } from "./order.validation"
 import prisma from '@config/db'
-import { BkashService } from "services/bkash.service"; // Corrected import
+import { BkashService } from "services/bkash.service"; 
 
-export const createBuyerOrder  = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-        const validatedData = OrderSchema.parse(req.body); //validating the input data throgh Zod
+export const createBuyerOrder  = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    // No try-catch block, errors will be passed to the centralized error handler by the next function
 
-        const buyerId = req.user!.id;
+    const validatedData = OrderSchema.parse(req.body); //validating the input data through Zod
 
-        const { items, paymentMethod, shippingInfo } = validatedData;
+    const buyerId = req.user!.id;
 
-        if(!items || !paymentMethod || !shippingInfo) {
-            res.status(400).json({ message: 'Missing required fields'});
-            return;
-        }
+    const { items, paymentMethod, shippingInfo } = validatedData;
 
-        const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    if (!items || !paymentMethod || !shippingInfo) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
 
-        // Create the order first (status will be PENDING by default)
-        const order = await createOrder(buyerId, {
-            items,
-            paymentMethod,
-            shippingInfo,
-        });
+    const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        // Triggering Bkash Payment if method is BKASH
-        if (paymentMethod === 'BKASH') {
-            const callbackURL = `${req.protocol}://${req.get('host')}/api/orders/bkash/callback`; //the URL bkash will use to callback after pyment creation 
-      
-            const payment = await BkashService.createPayment(
-              totalAmount,
-              order.id,
-              'sale',
-              callbackURL
-            );
-      
-            if (!payment || !payment.paymentID) {
-              throw new Error('Bkash payment creation failed');
-            }
-      
-            await prisma.order.update({
-              where: { id: order.id },
-              data: {
-                paymentId: payment.paymentID,
-                status: 'PENDING', // Optional: explicitly mark as pending
-              },
-            });
+    // Create the order first (status will be PENDING by default)
+    const order = await createOrder(buyerId, {
+      items,
+      paymentMethod,
+      shippingInfo,
+    });
 
-            // Return the bKash URL to the frontend for redirection
-            res.status(201).json({
-                message: 'Order created successfully. Redirect to bKash.',
-                orderId: order.id, // Return order ID
-                bkashURL: payment.bkashURL // Return the bKash redirect URL to be used by the frontend
-            });
+    // Triggering Bkash Payment if method is BKASH
+    if (paymentMethod === 'BKASH') {
+      const callbackURL = `${req.protocol}://${req.get('host')}/api/orders/bkash/callback`; //the URL bkash will use to callback after payment creation 
 
-        } else {
-            // For non-BKASH payments, return the created order directly
-            res.status(201).json({ message: 'Order created successfully', order});
-        }
+      const payment = await BkashService.createPayment(
+        totalAmount,
+        order.id,
+        'sale',
+        callbackURL
+      );
 
-    } catch (err: any) {
-        console.error('Error creating order or initiating bKash payment', err); // More specific logging
-        res.status(500).json({ message: err.message || 'Internal server error'});
+      if (!payment || !payment.paymentID) {
+        throw new Error('Bkash payment creation failed');
+      }
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paymentId: payment.paymentID,
+          status: 'PENDING', // Optional: explicitly mark as pending
+        },
+      });
+
+      // Return the bKash URL to the frontend for redirection
+      res.status(201).json({
+        message: 'Order created successfully. Redirect to bKash.',
+        orderId: order.id, // Return order ID
+        bkashURL: payment.bkashURL // Return the bKash redirect URL to be used by the frontend
+      });
+
+    } else {
+      // For non-BKASH payments, return the created order directly
+      res.status(201).json({ message: 'Order created successfully', order });
     }
 };
 
 // Callback route will be called by bKash after the user completes the payment on their page
+
 interface BkashCallbackQuery {
     paymentID?: string;
     status?: string;
@@ -128,46 +125,36 @@ export const handleBkashCallback = async (
     }
 };
 
-export const getBuyerOrders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-        const buyerId = req.user!.id;
+export const getBuyerOrders = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
 
-        const orders = await getOrder({ buyerId });
+    const buyerId = req.user!.id;
 
-        res.status(200).json({message: 'Orders fetched successfully', orders});
+    const orders = await getOrder({ buyerId });
 
+    res.status(200).json({message: 'Orders fetched successfully', orders});
 
-    } catch (err:any) {
-        console.error('Error fetching buyer order', err);
-        res.status(500).json({ message: err.message || 'Internal Server Error' });
-    }
 };
 
-export const getSellerOrders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try{
-        const sellerId = req.user!.id;
-        const orders = await getOrder({ sellerId });
-        res.status(200).json ({ message: 'Orders fetched successfully', orders });
+export const getSellerOrders = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    // No try-catch block, errors will be passed to the centralized error handler by the next function
+    
+    const sellerId = req.user!.id;
+    const orders = await getOrder({ sellerId });
+    res.status(200).json ({ message: 'Orders fetched successfully', orders });
 
-    }catch (err: any) {
-        console.error('Error fetching data from server', err);
-        res.status(500).json({ message: err.message || 'Internal Server Error'});
-    }
 };
 
-export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-        const sellerId = req.user!.id;
-        const orderId = req.params.id;
-        const { status } = req.body;
+export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    // No try-catch block, errors will be passed to the centralized error handler by the next function
+
+    const sellerId = req.user!.id;
+    const orderId = req.params.id;
+    const { status } = req.body;
+
+    const validatedStatus = UpdateStatusSchema.parse(status); // Validate the status using Zod
 
 
-        // Note: The parameter order needs to match the function definition
-        const order = await updateStatus(orderId, sellerId, status);
-        res.status(200).json({ message: 'Status Updated', order});
-
-    } catch (err: any) {
-        console.error('Error updating order status', err);
-        res.status(500).json({ message: err.message || 'Internal Server Error' });
-    }
+    // Note: The parameter order needs to match the function definition
+    const order = await updateStatus(orderId, sellerId, validatedStatus.status);
+    res.status(200).json({ message: 'Status Updated', order});
 };

@@ -1,11 +1,15 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { ReviewService } from "./review.service";
 import { AuthenticatedRequest } from "@middleware/auth";
+import { AddReviewSchema } from "./review.validation";
 
 export const ReviewController = {
-    addReview: async (req:AuthenticatedRequest, res: Response) => {
+    addReview: async (req:AuthenticatedRequest, res: Response, next: NextFunction) => {
         
-        const { productId, rating, comment } = req.body
+        const validatedData = AddReviewSchema.parse(req.body)  //extra fields provided in the request body will be removed by Zod
+        const { rating, comment } = validatedData
+        const { productId } = req.params
+
 
         const review = await ReviewService.addReview({
             buyerId: req.user!.id,

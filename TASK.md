@@ -38,12 +38,12 @@ This document lists the development tasks for the Vibecommerce backend, categori
 -   [ ] **Implement Discount Price Countdown Logic**:
     -   [ ] The backend currently stores `discountValidTill`. The frontend will likely handle the countdown display.
     -   [ ] Ensure the `product.service.searchProducts` and potentially `product.service.getById` correctly return the active price (discounted or regular) based on `discountValidTill`. (Search logic seems to handle this, verify `getById`).
--   [ ] **Implement Bkash Sandbox Payment**:
-    -   [ ] Research Bkash payment gateway integration API.
-    -   [ ] Add necessary configuration (API keys, etc.).
-    -   [ ] Create Bkash utility/service (`src/utils/bkash.ts`?).
-    -   [ ] Modify the checkout process (`order.controller.createBuyerOrder` or a new dedicated route) to handle Bkash payment initiation and verification.
-    -   [ ] Update `prisma.schema` if payment transaction details need to be stored.
+-   [x] **Implement Bkash Sandbox Payment**: *(Completed: 2025-04-30)*
+    -   [x] Research Bkash payment gateway integration API. *(Completed: 2025-04-30)*
+    -   [ ] Add necessary configuration (API keys, etc.). (Mock configuration added, actual configuration needed later)
+    -   [x] Create Bkash utility/service (`src/utils/bkash.ts`?). *(Completed: 2025-04-30 - created src/utils/bkash.service.ts)*
+    -   [x] Modify the checkout process (`order.controller.createBuyerOrder` or a new dedicated route) to handle Bkash payment initiation and verification. *(Completed: 2025-04-30 - initiation in createBuyerOrder, verification in handleBkashCallback)*
+    -   [x] Update `prisma.schema` if payment transaction details need to be stored. *(Completed: 2025-04-30 - confirmed existing fields)*
 -   [ ] **Implement Email Notifications for Order Status Updates**:
     -   [ ] Use the email utility created for seller notifications.
     -   [ ] Modify `order.service.updateStatus` to trigger an email notification to the buyer when the status changes.

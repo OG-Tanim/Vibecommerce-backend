@@ -44,7 +44,8 @@ Modular, service-based backend for the Vibecommerce e-commerce platform, providi
 
 ## Getting Started
 
-(Add instructions on how to set up and run the backend)
+- Standard run of the mill Node.js project run
+- env.example porvided for reference 
 
 ## Tech Stack
 

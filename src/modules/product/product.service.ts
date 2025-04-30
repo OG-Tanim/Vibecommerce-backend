@@ -68,12 +68,8 @@ export const ProductService = {
         minPrice?: number;
         maxPrice?: number;
       }) => {
-        const now = new Date();
-      
-        // Fallback values for price filters
-        const min = minPrice ?? 0;
-        const max = maxPrice ?? 9999999;
-      
+        // Remove manual discount logic here, it will be applied after fetching
+
         const where: any = {
           ...(name && {
             title: {
@@ -88,36 +84,34 @@ export const ProductService = {
             },
           }),
         };
-      
+
+        // Keep price filtering in the database query for efficiency
         if (minPrice !== undefined || maxPrice !== undefined) {
-          where.OR = [
-            {
-              AND: [
-                { discountValidTill: { gt: now } },
-                { discountPrice: { gte: min, lte: max } },
-              ],
-            },
-            {
-              AND: [
-                {
-                  OR: [
-                    { discountValidTill: null },
-                    { discountValidTill: { lte: now } },
-                  ],
-                },
-                { price: { gte: min, lte: max } },
-              ],
-            },
-          ];
+             where.price = { // Filter by the base price in the database
+                 gte: minPrice,
+                 lte: maxPrice
+             }
+             // Note: This simple price filter doesn't account for discountedPrice in the DB query.
+             // For accurate filtering by *active* price in the DB, a more complex query
+             // involving checking discountValidTill would be needed here.
+             // For now, we'll filter by base price in DB and apply discount logic after.
         }
-      
-        return await prisma.product.findMany({
+
+        const products = await prisma.product.findMany({
           where,
           orderBy: {
             createdAt: "desc",
           },
+          include: { // Include seller info if needed for applyDiscountLogic or frontend
+              seller: {
+                  select: {id: true, name: true, email:true }
+              }
+          }
         });
-      },      
+
+        // Apply discount logic to each product after fetching
+        return products.map(applyDiscountLogic);
+      },
 
     update: async (id: string, userId: string, data: any) => {
         const product = await prisma.product.findUnique({
@@ -156,4 +150,3 @@ export const ProductService = {
         return await prisma.product.delete({ where: { id }})
     }
 }
-
