@@ -33,7 +33,7 @@ app.use('/api/products', productRoutes)
 
 app.use('/api/orders', orderRoutes)
 
-app.use('/api/reviews')
+app.use('/api/reviews', reviewRoutes)
 
 export default app
 

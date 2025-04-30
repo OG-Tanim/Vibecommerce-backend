@@ -1,6 +1,7 @@
 import prisma from '@config/db'
 import { Prisma } from '@prisma/client';
-import { deleteCloudinaryAssets } from '@utils/cloudinary-delete';
+import { deleteCloudinaryAssets } from 'services/cloudinary-delete';
+import { applyDiscountLogic } from '@utils/product.discount';
 
 export const ProductService = {
     create : async (
@@ -27,7 +28,7 @@ export const ProductService = {
     },
 
     getAll: async () => {
-        return await prisma.product.findMany({
+        const products = await prisma.product.findMany({
             orderBy: { createdAt: 'desc'}, 
             include: {
                 seller: {
@@ -35,17 +36,25 @@ export const ProductService = {
                 }
             }
         })
-    },
+
+        return products.map((applyDiscountLogic)); // Apply discount logic to each product
+
+      },
+      
 
     getById: async (id: string) => {
-         return await prisma.product.findUnique({
-            where: { id: id },
-            include: {
-                seller: { 
-                    select: {id: true, name: true, email: true}
-            }
-        }
-      })
+       const product = await prisma.product.findUnique({
+          where: { id: id },
+          include: {
+              seller: { 
+                  select: {id: true, name: true, email: true}
+              }
+          }
+      });
+
+      if (!product) throw new Error('Product not found');
+
+      return applyDiscountLogic(product); // Apply discount logic to the product before returning it
     },
 
     searchProducts: async ({

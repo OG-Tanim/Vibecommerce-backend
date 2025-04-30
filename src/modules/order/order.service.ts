@@ -1,7 +1,7 @@
 import prisma from '@config/db';
 import { OrderStatus, Prisma } from '@prisma/client'; // Merged Prisma import
 import { allowedTransitions } from '@utils/orderStatusTransitions';
-import { MailService } from '@utils/mail.service'; // Keep MailService import
+import { MailService } from 'services/mail.service'; // Keep MailService import
 
 interface OrderItemInput {
     productId: string,
@@ -89,7 +89,6 @@ export const createOrder = async (buyerId: string, data: OrderInput) => {
         console.error(`Failed to send order notification email for Order ID ${createdOrder.id}:`, emailError);
         // Do not throw error here, allow order creation to succeed even if email fails
     }
-    // -----------------------------------------------------
 
     return createdOrder; // Return the created order object
 };
@@ -154,7 +153,8 @@ export const updateStatus = async (
         include: {
             items: {
                 include: { product: true }
-            } //fetching upto the product to get the sellerId of that product 
+            }, //fetching upto the product to get the sellerId of that product 
+            buyer: true // Include buyer details to access buyer.email
         }
     })
 
@@ -171,8 +171,21 @@ export const updateStatus = async (
         throw new Error(`Cannot change status form ${currentStatus} to ${status}`)
     }
 
-    return await prisma.order.update({
+    const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data : { status }
     })
+
+    await MailService.sendMail({
+        to: order.buyer.email,   
+        subject: `Order status updated (Order ID: ${order.id})`,
+        html: ` 
+            <p>Hi ${order.buyer.name},</p>
+            <p>Your order with ID <strong>${order.id}</strong> has been updated to <strong>${status}</strong>.</p>
+            <p>Thank you for shopping with us!</p>
+             `
+
+    })
+
+    return updatedOrder
 }

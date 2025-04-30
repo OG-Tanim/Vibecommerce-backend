@@ -75,26 +75,35 @@ model Product {
 
 model Order {
 
-  id               String          @id @default(uuid())
+  id                   String          @id @default(uuid())
 
-  buyerId          String
+  buyerId              String
 
-  buyer            User            @relation("buyerOrders", fields: [buyerId], references: [id])
+  buyer                User            @relation("buyerOrders", fields: [buyerId], references: [id])
 
-  status           OrderStatus     @default(PENDING)
+  status               OrderStatus     @default(PENDING)
 
-  paymentMethod    PaymentMethod
+  paymentMethod        PaymentMethod
 
-  shippingInfo     String
+  shippingInfo         String
 
-  createrAt        DateTime        @default(now())
+  createrAt            DateTime        @default(now())
 
-  updatedAt        DateTime        @updatedAt
+  updatedAt            DateTime        @updatedAt
 
-  items            OrderItem[]     @relation("orderItems") //one-to-many relation 
+  items                OrderItem[]     @relation("orderItems") //one-to-many relation 
 
-  totalAmount      Float
+  totalAmount          Float
+  
+  //BKASH specific     fields
 
+  paymentId            String?         @unique
+
+  transactionId        String?
+
+  paymentStatus        String?
+
+  paymentExecutedAt    DateTime?
 }
 
 

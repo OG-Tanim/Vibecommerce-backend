@@ -8,7 +8,7 @@ import {
     deleteProduct
 } from './product.controller'
 
-import { imageUpload, videoUpload } from '@utils/cloudinary-upload'
+import { imageUpload, videoUpload } from 'services/cloudinary-upload'
 
 const router = Router()
 
