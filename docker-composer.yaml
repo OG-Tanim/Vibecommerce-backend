@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  app:
+    image: og_tanim/e-commerce_app:1.0
+    container_name: e-commerce_app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
